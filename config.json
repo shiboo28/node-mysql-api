@@ -1,10 +1,10 @@
 {
     "database": {
-        "host": "localhost",
+        "host": "mysql.railway.internal",
         "port": 3306,
         "user": "root",
-        "password": "jivomikmik28",
-        "database": "node_mysql_api"
+        "password": "XNyldjktqZtTrumMCKUvEUWLexufnNKZ",
+        "database": "railway"
     },
     "secret": "SUPER_SECRET_KEY_REPLACE_ME_IN_PRODUCTION",
     "emailFrom": "info@my-node-api.com",
