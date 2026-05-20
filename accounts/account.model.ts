@@ -25,7 +25,7 @@ export = function model(sequelize: Sequelize) {
     const options = {
         timestamps: false,
         defaultScope: { attributes: { exclude: ['passwordHash'] } },
-        scopes: { withHash: { attributes: {} } }
+        scopes: { withHash: {} }
     };
 
     return sequelize.define('account', attributes, options);
