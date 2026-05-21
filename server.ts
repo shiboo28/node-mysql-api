@@ -14,32 +14,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const allowedOrigins = (process.env.CORS_ORIGIN || '')
-    .split(',')
-    .map(o => o.trim())
-    .filter(o => o);
+app.options('*', cors({ origin: true, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 
-const corsOptions = {
-    origin: (origin: any, callback: any) => {
-        // Allow all origins dynamically if CORS_ORIGIN is not set or is '*'
-        const allowAll = !process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === '*';
-        if (allowAll) {
-            return callback(null, true);
-        }
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            return callback(new Error('Not allowed by CORS'), false);
-        }
-        return callback(null, true);
-    },
-    credentials: true
-};
-
-// Handle preflight for ALL routes
-app.options('*', cors(corsOptions));
-app.use(cors(corsOptions));
-
-// health check endpoint
 app.get('/health', (req, res) => {
     const db = require('./_helpers/db').default;
     res.json({
@@ -49,7 +26,6 @@ app.get('/health', (req, res) => {
     });
 });
 
-// database health barrier for api routes
 app.use((req, res, next) => {
     const db = require('./_helpers/db').default;
     if (!db.initialized) {
@@ -61,13 +37,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// api routes
 app.use('/accounts', accountsController);
-
-// swagger docs route
 app.use('/api-docs', swaggerDocs);
-
-// global error handler
 app.use(errorHandler);
 
 const port = parseInt(process.env.PORT || '4000', 10);
