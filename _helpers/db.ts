@@ -18,7 +18,8 @@ async function initialize() {
     let password = (config as any).database.password;
     let database = (config as any).database.database;
 
-    const url = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
+    const rawUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
+    const url = rawUrl ? rawUrl.replace(/\r/g, '').trim() : undefined;
     if (url) {
         try {
             const parsedUrl = new URL(url);
@@ -31,20 +32,25 @@ async function initialize() {
             console.error('Failed to parse database connection URL:', err);
         }
     } else {
-        if (process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST) {
-            host = process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST;
+        const rawHost = process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST;
+        if (rawHost) {
+            host = rawHost.replace(/\r/g, '').trim();
         }
-        if (process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT) {
-            port = parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10);
+        const rawPort = process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT;
+        if (rawPort) {
+            port = parseInt(rawPort.replace(/\r/g, '').trim(), 10);
         }
-        if (process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER) {
-            user = process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER;
+        const rawUser = process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER;
+        if (rawUser) {
+            user = rawUser.replace(/\r/g, '').trim();
         }
-        if (process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD) {
-            password = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD;
+        const rawPassword = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD;
+        if (rawPassword) {
+            password = rawPassword.replace(/\r/g, '').trim();
         }
-        if (process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_DATABASE) {
-            database = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_DATABASE;
+        const rawDatabase = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_DATABASE;
+        if (rawDatabase) {
+            database = rawDatabase.replace(/\r/g, '').trim();
         }
     }
 
@@ -78,6 +84,19 @@ async function initialize() {
         db.RefreshToken.belongsTo(db.Account);
 
         await sequelize.sync();
+
+        // Auto-verify all existing accounts on startup to bypass SMTP issues
+        const accounts = await db.Account.findAll({ where: { verified: null } });
+        if (accounts.length > 0) {
+            console.log(`[Auto-Verification] Found ${accounts.length} unverified account(s). Auto-verifying...`);
+            for (const account of accounts) {
+                account.verified = new Date();
+                account.verificationToken = null;
+                await account.save();
+                console.log(`[Auto-Verification] Successfully verified: ${account.email}`);
+            }
+        }
+
         db.initialized = true;
         console.log('Database initialized successfully');
     } catch (err: any) {

@@ -2,7 +2,8 @@ import { expressjwt } from 'express-jwt';
 import config from '../config.json';
 import db from '../_helpers/db';
 
-const secret = process.env.JWT_SECRET || (config as any).secret;
+const rawSecret = process.env.JWT_SECRET || (config as any).secret;
+const secret = typeof rawSecret === 'string' ? rawSecret.replace(/\r/g, '').trim() : rawSecret;
 
 export = authorize;
 

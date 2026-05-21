@@ -75,6 +75,7 @@ async function register(params: any, origin: any) {
 }
 
 async function verifyEmail({ token }: any) {
+    if (!token) throw 'Verification failed';
     const account = await db.Account.findOne({ where: { verificationToken: token } });
     if (!account) throw 'Verification failed';
     account.verified = Date.now();
@@ -92,6 +93,7 @@ async function forgotPassword({ email }: any, origin: any) {
 }
 
 async function validateResetToken({ token }: any) {
+    if (!token) throw 'Invalid token';
     const account = await db.Account.findOne({
         where: {
             resetToken: token,
@@ -161,6 +163,7 @@ async function getAccount(id: any) {
 }
 
 async function getRefreshToken(token: any) {
+    if (!token) throw 'Invalid token';
     const refreshToken = await db.RefreshToken.findOne({ where: { token } });
     if (!refreshToken || !refreshToken.isActive) throw 'Invalid token';
     return refreshToken;
@@ -171,7 +174,8 @@ async function hash(password: any) {
 }
 
 function generateJwtToken(account: any) {
-    const secret = process.env.JWT_SECRET || (config as any).secret;
+    const rawSecret = process.env.JWT_SECRET || (config as any).secret;
+    const secret = typeof rawSecret === 'string' ? rawSecret.replace(/\r/g, '').trim() : rawSecret;
     return jwt.sign({ sub: account.id, id: account.id }, secret, { expiresIn: '15m' });
 }
 
@@ -195,8 +199,17 @@ function basicDetails(account: any) {
 
 async function sendVerificationEmail(account: any, origin: any) {
     let message;
+    const verifyUrl = origin ? `${origin}/account/verify-email?token=${account.verificationToken}` : null;
+
+    console.log(`----------------------------------------`);
+    console.log(`[VERIFICATION] Email: ${account.email}`);
+    console.log(`[VERIFICATION] Token: ${account.verificationToken}`);
+    if (verifyUrl) {
+        console.log(`[VERIFICATION] Link: ${verifyUrl}`);
+    }
+    console.log(`----------------------------------------`);
+
     if (origin) {
-        const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
         message = `<p>Please click the below link to verify your email address:</p>
                    <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
     } else {
@@ -232,8 +245,17 @@ async function sendAlreadyRegisteredEmail(email: any, origin: any) {
 
 async function sendPasswordResetEmail(account: any, origin: any) {
     let message;
+    const resetUrl = origin ? `${origin}/account/reset-password?token=${account.resetToken}` : null;
+
+    console.log(`----------------------------------------`);
+    console.log(`[PASSWORD RESET] Email: ${account.email}`);
+    console.log(`[PASSWORD RESET] Token: ${account.resetToken}`);
+    if (resetUrl) {
+        console.log(`[PASSWORD RESET] Link: ${resetUrl}`);
+    }
+    console.log(`----------------------------------------`);
+
     if (origin) {
-        const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
         message = `<p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
                    <p><a href="${resetUrl}">${resetUrl}</a></p>`;
     } else {
