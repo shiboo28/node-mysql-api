@@ -2,7 +2,10 @@ import mysql from 'mysql2/promise';
 import { Sequelize } from 'sequelize';
 import config from '../config.json';
 
-const db: any = {};
+const db: any = {
+    initialized: false,
+    error: null
+};
 
 export default db;
 
@@ -64,20 +67,21 @@ async function initialize() {
                 ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : false
             }
         });
-    } catch (err) {
+
+        const accountModel = require('../accounts/account.model');
+        const refreshTokenModel = require('../accounts/refresh-token.model');
+
+        db.Account = accountModel(sequelize);
+        db.RefreshToken = refreshTokenModel(sequelize);
+
+        db.Account.hasMany(db.RefreshToken, { onDelete: 'CASCADE' });
+        db.RefreshToken.belongsTo(db.Account);
+
+        await sequelize.sync();
+        db.initialized = true;
+        console.log('Database initialized successfully');
+    } catch (err: any) {
+        db.error = err.message || String(err);
         console.error('Database connection / initialization failed:', err);
-        throw err;
     }
-
-    const accountModel = require('../accounts/account.model');
-    const refreshTokenModel = require('../accounts/refresh-token.model');
-
-    db.Account = accountModel(sequelize);
-    db.RefreshToken = refreshTokenModel(sequelize);
-
-    db.Account.hasMany(db.RefreshToken, { onDelete: 'CASCADE' });
-    db.RefreshToken.belongsTo(db.Account);
-
-    await sequelize.sync();
-    console.log('Database initialized');
 }

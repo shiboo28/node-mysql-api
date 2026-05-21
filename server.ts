@@ -33,6 +33,28 @@ app.use(cors({
   credentials: true
 }));
 
+// health check endpoint (does not require database initialized to respond)
+app.get('/health', (req, res) => {
+  const db = require('./_helpers/db').default;
+  res.json({
+    status: db.initialized ? 'healthy' : 'unhealthy',
+    database: db.initialized ? 'connected' : 'disconnected',
+    error: db.error
+  });
+});
+
+// database health barrier for api routes
+app.use((req, res, next) => {
+  const db = require('./_helpers/db').default;
+  if (!db.initialized) {
+    return res.status(503).json({
+      message: 'Database is not initialized yet or failed to initialize',
+      error: db.error || 'Unknown database error'
+    });
+  }
+  next();
+});
+
 // api routes
 app.use('/accounts', accountsController);
 
