@@ -7,12 +7,12 @@ export default async function sendEmail({ to, subject, html, from = process.env.
         if (process.env.SMTP_HOST) {
             const port = parseInt(process.env.SMTP_PORT || '587');
             smtpOptions = {
-                host: process.env.SMTP_HOST,
+                host: process.env.SMTP_HOST.trim(),
                 port,
                 secure: port === 465, // true for SSL on port 465, false for STARTTLS on 587
                 auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
+                    user: process.env.SMTP_USER ? process.env.SMTP_USER.trim() : undefined,
+                    pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : undefined
                 }
             };
         } else {
