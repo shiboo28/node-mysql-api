@@ -1,12 +1,8 @@
 import * as nodemailer from 'nodemailer';
 
-let transporter: nodemailer.Transporter;
-
 async function getTransporter() {
-    if (transporter) return transporter;
-
     if (process.env.SMTP_HOST) {
-        transporter = nodemailer.createTransport({
+        return nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: parseInt(process.env.SMTP_PORT || '465'),
             secure: true,
@@ -18,8 +14,7 @@ async function getTransporter() {
     } else {
         const testAccount = await nodemailer.createTestAccount();
         console.log(`📧 Ethereal test account: ${testAccount.user}`);
-
-        transporter = nodemailer.createTransport({
+        return nodemailer.createTransport({
             host: 'smtp.ethereal.email',
             port: 587,
             auth: {
@@ -28,8 +23,6 @@ async function getTransporter() {
             }
         });
     }
-
-    return transporter;
 }
 
 async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
