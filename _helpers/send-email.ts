@@ -32,7 +32,7 @@ async function getTransporter() {
     return transporter;
 }
 
-export async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
+async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
     const transport = await getTransporter();
     const info = await transport.sendMail({
         from: process.env.EMAIL_FROM || '"Angular Auth App" <noreply@angular-auth.com>',
@@ -47,7 +47,7 @@ export async function sendEmail({ to, subject, html }: { to: string, subject: st
     return info;
 }
 
-export async function sendVerificationEmail(account: any, origin: string) {
+async function sendVerificationEmail(account: any, origin: string) {
     const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
     await sendEmail({
         to: account.email,
@@ -60,7 +60,7 @@ export async function sendVerificationEmail(account: any, origin: string) {
     });
 }
 
-export async function sendPasswordResetEmail(account: any, origin: string) {
+async function sendPasswordResetEmail(account: any, origin: string) {
     const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
     await sendEmail({
         to: account.email,
@@ -72,3 +72,6 @@ export async function sendPasswordResetEmail(account: any, origin: string) {
     `
     });
 }
+
+export { sendEmail, sendVerificationEmail, sendPasswordResetEmail };
+export default sendEmail;
