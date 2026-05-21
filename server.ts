@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200')
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200, https://angular-auth-boilerplate-nh8l.onrender.com')
     .split(',')
     .map(o => o.trim());
 

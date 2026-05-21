@@ -222,11 +222,12 @@ function _delete(req: any, res: any, next: any) {
 }
 
 function setTokenCookie(res: any, token: any) {
+    const isProd = process.env.NODE_ENV === 'production' || !!process.env.PORT;
     const cookieOptions: any = {
         httpOnly: true, // 👈 This makes it highly secure!
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        sameSite: isProd ? 'none' : 'lax',
+        secure: isProd
     };
     res.cookie('refreshToken', token, cookieOptions);
 }
