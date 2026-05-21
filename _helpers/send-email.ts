@@ -4,8 +4,11 @@ async function getTransporter() {
     if (process.env.SMTP_HOST) {
         return nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '465'),
-            secure: true,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: false,
+            tls: {
+                rejectUnauthorized: false
+            },
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
@@ -26,18 +29,21 @@ async function getTransporter() {
 }
 
 async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
-    const transport = await getTransporter();
-    const info = await transport.sendMail({
-        from: process.env.EMAIL_FROM || '"Angular Auth App" <noreply@angular-auth.com>',
-        to,
-        subject,
-        html
-    });
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) console.log(`📧 Preview: ${previewUrl}`);
-
-    return info;
+    try {
+        const transport = await getTransporter();
+        const info = await transport.sendMail({
+            from: process.env.EMAIL_FROM || '"Angular Auth App" <noreply@angular-auth.com>',
+            to,
+            subject,
+            html
+        });
+        console.log(`📧 Email sent successfully to: ${to}`);
+        console.log(`📧 Message ID: ${info.messageId}`);
+        return info;
+    } catch (error) {
+        console.error(`❌ Email failed:`, error);
+        throw error;
+    }
 }
 
 async function sendVerificationEmail(account: any, origin: string) {
