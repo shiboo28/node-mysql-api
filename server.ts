@@ -14,8 +14,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-app.options('*', cors({ origin: true, credentials: true }));
-app.use(cors({ origin: true, credentials: true }));
+app.options('*', cors({ origin: 'https://angular-auth-boilerplate-nh8i.onrender.com', credentials: true }));
+app.use(cors({ origin: 'https://angular-auth-boilerplate-nh8i.onrender.com', credentials: true }));
 
 app.get('/health', (req, res) => {
     const db = require('./_helpers/db').default;
