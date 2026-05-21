@@ -1,6 +1,6 @@
-const nodemailer = require('nodemailer');
+import * as nodemailer from 'nodemailer';
 
-let transporter;
+let transporter: nodemailer.Transporter;
 
 async function getTransporter() {
     if (transporter) return transporter;
@@ -17,10 +17,7 @@ async function getTransporter() {
         });
     } else {
         const testAccount = await nodemailer.createTestAccount();
-        console.log('📧 Ethereal test account created:');
-        console.log(`   Email: ${testAccount.user}`);
-        console.log(`   Pass:  ${testAccount.pass}`);
-        console.log(`   View emails at: https://ethereal.email/login`);
+        console.log(`📧 Ethereal test account: ${testAccount.user}`);
 
         transporter = nodemailer.createTransport({
             host: 'smtp.ethereal.email',
@@ -35,7 +32,7 @@ async function getTransporter() {
     return transporter;
 }
 
-async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
     const transport = await getTransporter();
     const info = await transport.sendMail({
         from: process.env.EMAIL_FROM || '"Angular Auth App" <noreply@angular-auth.com>',
@@ -45,46 +42,33 @@ async function sendEmail({ to, subject, html }) {
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-        console.log(`📧 Preview email: ${previewUrl}`);
-    }
+    if (previewUrl) console.log(`📧 Preview: ${previewUrl}`);
 
     return info;
 }
 
-async function sendVerificationEmail(account, origin) {
+export async function sendVerificationEmail(account: any, origin: string) {
     const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
-
     await sendEmail({
         to: account.email,
         subject: 'Angular Auth - Verify Your Email',
         html: `
       <h2>Verify Your Email</h2>
       <p>Thanks for registering!</p>
-      <p>Please click the link below to verify your email address:</p>
       <p><a href="${verifyUrl}">${verifyUrl}</a></p>
-      <p>If you did not register, please ignore this email.</p>
     `
     });
 }
 
-async function sendPasswordResetEmail(account, origin) {
+export async function sendPasswordResetEmail(account: any, origin: string) {
     const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
-
     await sendEmail({
         to: account.email,
         subject: 'Angular Auth - Reset Your Password',
         html: `
       <h2>Reset Password</h2>
-      <p>Please click the link below to reset your password. The link will be valid for 24 hours:</p>
       <p><a href="${resetUrl}">${resetUrl}</a></p>
-      <p>If you did not request a password reset, please ignore this email.</p>
+      <p>Link valid for 24 hours.</p>
     `
     });
 }
-
-module.exports = {
-    sendEmail,
-    sendVerificationEmail,
-    sendPasswordResetEmail
-};
