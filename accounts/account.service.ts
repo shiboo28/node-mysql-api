@@ -62,7 +62,8 @@ async function revokeToken({ token, ipAddress }: any) {
 
 async function register(params: any, origin: any) {
     if (await db.Account.findOne({ where: { email: params.email } })) {
-        return await sendAlreadyRegisteredEmail(params.email, origin);
+        sendAlreadyRegisteredEmail(params.email, origin);
+        return;
     }
 
     const account = new db.Account(params);
@@ -71,7 +72,7 @@ async function register(params: any, origin: any) {
     account.verificationToken = randomTokenString();
     account.passwordHash = await hash(params.password);
     await account.save();
-    await sendVerificationEmail(account, origin);
+    sendVerificationEmail(account, origin);
 }
 
 async function verifyEmail({ token }: any) {
@@ -89,7 +90,7 @@ async function forgotPassword({ email }: any, origin: any) {
     account.resetToken = randomTokenString();
     account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await account.save();
-    await sendPasswordResetEmail(account, origin);
+    sendPasswordResetEmail(account, origin);
 }
 
 async function validateResetToken({ token }: any) {
