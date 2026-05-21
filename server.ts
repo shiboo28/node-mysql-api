@@ -14,12 +14,18 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:4200, https://angular-auth-boilerplate-nh8l.onrender.com')
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
     .split(',')
-    .map(o => o.trim());
+    .map(o => o.trim())
+    .filter(o => o);
 
 const corsOptions = {
     origin: (origin: any, callback: any) => {
+        // Allow all origins dynamically if CORS_ORIGIN is not set or is '*'
+        const allowAll = !process.env.CORS_ORIGIN || process.env.CORS_ORIGIN === '*';
+        if (allowAll) {
+            return callback(null, true);
+        }
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             return callback(new Error('Not allowed by CORS'), false);
