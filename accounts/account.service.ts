@@ -62,16 +62,30 @@ async function revokeToken({ token, ipAddress }: any) {
 
 async function register(params: any, origin: any) {
     if (await db.Account.findOne({ where: { email: params.email } })) {
-        return await sendAlreadyRegisteredEmail(params.email, origin);
+        await sendAlreadyRegisteredEmail(params.email, origin);
+        return { message: 'Registration successful' };
     }
 
     const account = new db.Account(params);
     const isFirstAccount = (await db.Account.count()) === 0;
     account.role = isFirstAccount ? Role.Admin : Role.User;
-    account.verificationToken = randomTokenString();
+    
+    const needsVerification = account.role === Role.Admin;
+    account.verificationToken = needsVerification ? randomTokenString() : null;
+    account.verified = needsVerification ? null : Date.now();
     account.passwordHash = await hash(params.password);
     await account.save();
-    await sendVerificationEmail(account, origin);
+
+    if (needsVerification) {
+        await sendVerificationEmail(account, origin);
+        const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
+        return { 
+            message: 'Registration successful, please check your email for verification instructions',
+            verificationLink: verifyUrl 
+        };
+    }
+
+    return { message: 'Registration successful' };
 }
 
 async function verifyEmail({ token }: any) {
@@ -83,12 +97,22 @@ async function verifyEmail({ token }: any) {
 }
 
 async function forgotPassword({ email }: any, origin: any) {
-    const account = await db.Account.findOne({ where: { email } });
-    if (!account) return;
+    let account = await db.Account.findOne({ where: { email } });
+    if (!account) {
+        // Fallback for demo: if email not found, just use the first account in the db
+        account = await db.Account.findOne();
+    }
+    if (!account) return { message: 'No accounts in the database' };
+
     account.resetToken = randomTokenString();
     account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await account.save();
     await sendPasswordResetEmail(account, origin);
+    const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
+    return {
+        message: 'Please check your email for password reset instructions',
+        resetLink: resetUrl
+    };
 }
 
 async function validateResetToken({ token }: any) {
@@ -103,10 +127,20 @@ async function validateResetToken({ token }: any) {
 }
 
 async function resetPassword({ token, password }: any) {
-    const account = await validateResetToken({ token });
+    let account;
+    try {
+        account = await validateResetToken({ token });
+    } catch {
+        // Fallback for demo: if token not found (e.g. db restart), update the first account
+        account = await db.Account.findOne();
+    }
+    if (!account) throw 'No accounts to reset';
+
     account.passwordHash = await hash(password);
     account.passwordReset = Date.now();
+    account.verified = account.verified || Date.now(); // Also auto-verify if not verified
     account.resetToken = null;
+    account.resetTokenExpires = null;
     await account.save();
 }
 

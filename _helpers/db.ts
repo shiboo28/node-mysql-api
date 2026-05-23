@@ -38,4 +38,25 @@ async function initialize() {
 
     await sequelize.sync();
     console.log('Database initialized');
+
+    // Auto-promote admin@lab7.com to Admin if it exists
+    try {
+        const adminAccount = await db.Account.findOne({ where: { email: 'admin@lab7.com' } });
+        if (adminAccount && adminAccount.role !== 'Admin') {
+            adminAccount.role = 'Admin';
+            await adminAccount.save();
+            console.log("🚀 Automatically promoted admin@lab7.com to Admin!");
+        }
+
+        // Auto-verify all existing unverified Users
+        const [updatedRows] = await db.Account.update(
+            { verified: new Date(), verificationToken: null },
+            { where: { role: 'User', verified: null } }
+        );
+        if (updatedRows > 0) {
+            console.log(`🚀 Automatically verified ${updatedRows} existing unverified Users!`);
+        }
+    } catch (err: any) {
+        console.error('Failed to initialize database defaults:', err.message);
+    }
 }

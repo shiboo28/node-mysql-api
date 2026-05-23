@@ -90,7 +90,7 @@ function registerSchema(req: any, res: any, next: any) {
 
 function register(req: any, res: any, next: any) {
     accountService.register(req.body, req.get('origin'))
-        .then(() => res.json({ message: 'Registration successful, please check your email for verification instructions' }))
+        .then((result: any) => res.json(result))
         .catch(next);
 }
 
@@ -116,7 +116,7 @@ function forgotPasswordSchema(req: any, res: any, next: any) {
 
 function forgotPassword(req: any, res: any, next: any) {
     accountService.forgotPassword(req.body, req.get('origin'))
-        .then(() => res.json({ message: 'Please check your email for password reset instructions' }))
+        .then((result: any) => res.json(result))
         .catch(next);
 }
 

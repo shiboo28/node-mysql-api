@@ -14,5 +14,5 @@
     "ignoreDeprecations": "6.0"
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "temp-frontend", "temp-backend", "Lab7", "lab7-backend", "angular-auth-boilerplate"]
 }
