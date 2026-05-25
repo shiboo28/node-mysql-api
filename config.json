@@ -7,13 +7,13 @@
         "database": "railway"
     },
     "secret": "SUPER_SECRET_KEY_REPLACE_ME_IN_PRODUCTION",
-    "emailFrom": "info@my-node-api.com",
+    "emailFrom": "onboarding@resend.dev",
     "smtpOptions": {
-        "host": "smtp.ethereal.email",
-        "port": 587,
+        "host": "smtp.resend.com",
+        "port": 465,
         "auth": {
-            "user": "alda.ruecker2@ethereal.email",
-            "pass": "XtsXQz31DReXxkVRRn"
+            "user": "resend",
+            "pass": "re_bCmSipYG_LmYZLQN9wWr9gG7ReseUF9m2"
         }
     }
 }

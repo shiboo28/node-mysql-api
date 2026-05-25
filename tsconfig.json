@@ -9,9 +9,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0"
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "temp-frontend", "temp-backend", "Lab7", "lab7-backend", "angular-auth-boilerplate"]

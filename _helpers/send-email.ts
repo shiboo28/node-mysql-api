@@ -1,16 +1,76 @@
-import nodemailer from 'nodemailer';
-import config from '../config.json';
+import * as nodemailer from 'nodemailer';
 
-export default async function sendEmail({ to, subject, html, from = process.env.EMAIL_FROM || (config as any).emailFrom }: any) {
-    const smtpOptions = process.env.SMTP_HOST ? {
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        }
-    } : (config as any).smtpOptions;
-
-    const transporter = nodemailer.createTransport(smtpOptions);
-    await transporter.sendMail({ from, to, subject, html });
+async function getTransporter() {
+    if (process.env.SMTP_HOST) {
+        return nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: false,
+            tls: {
+                rejectUnauthorized: false
+            },
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+    } else {
+        const testAccount = await nodemailer.createTestAccount();
+        console.log(`📧 Ethereal test account: ${testAccount.user}`);
+        return nodemailer.createTransport({
+            host: 'smtp.ethereal.email',
+            port: 587,
+            auth: {
+                user: testAccount.user,
+                pass: testAccount.pass
+            }
+        });
+    }
 }
+
+async function sendEmail({ to, subject, html }: { to: string, subject: string, html: string }) {
+    try {
+        const transport = await getTransporter();
+        const info = await transport.sendMail({
+            from: process.env.EMAIL_FROM || '"Angular Auth App" <noreply@angular-auth.com>',
+            to,
+            subject,
+            html
+        });
+        console.log(`📧 Email sent successfully to: ${to}`);
+        console.log(`📧 Message ID: ${info.messageId}`);
+        return info;
+    } catch (error) {
+        console.error(`❌ Email failed:`, error);
+        throw error;
+    }
+}
+
+async function sendVerificationEmail(account: any, origin: string) {
+    const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
+    await sendEmail({
+        to: account.email,
+        subject: 'Angular Auth - Verify Your Email',
+        html: `
+      <h2>Verify Your Email</h2>
+      <p>Thanks for registering!</p>
+      <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+    `
+    });
+}
+
+async function sendPasswordResetEmail(account: any, origin: string) {
+    const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
+    await sendEmail({
+        to: account.email,
+        subject: 'Angular Auth - Reset Your Password',
+        html: `
+      <h2>Reset Password</h2>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>Link valid for 24 hours.</p>
+    `
+    });
+}
+
+export { sendEmail, sendVerificationEmail, sendPasswordResetEmail };
+export default sendEmail;

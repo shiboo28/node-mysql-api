@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -13,18 +14,34 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// allow cors requests from any origin and with credentials
-app.use(cors({ origin: (origin, callback) => callback(null, true), credentials: true }));
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:4200';
 
-// api routes
+app.options('*', cors({ origin: corsOrigin, credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
+
+app.get('/health', (req, res) => {
+    const db = require('./_helpers/db').default;
+    res.json({
+        status: db.initialized ? 'healthy' : 'unhealthy',
+        database: db.initialized ? 'connected' : 'disconnected',
+        error: db.error
+    });
+});
+
+app.use((req, res, next) => {
+    const db = require('./_helpers/db').default;
+    if (!db.initialized) {
+        return res.status(503).json({
+            message: 'Database is not initialized yet or failed to initialize',
+            error: db.error || 'Unknown database error'
+        });
+    }
+    next();
+});
+
 app.use('/accounts', accountsController);
-
-// swagger docs route
 app.use('/api-docs', swaggerDocs);
-
-// global error handler
 app.use(errorHandler);
 
-// start server
-const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
-app.listen(port, () => console.log('Server listening on port ' + port));
+const port = parseInt(process.env.PORT || '4000', 10);
+app.listen(port, '0.0.0.0', () => console.log('Server listening on port ' + port));
