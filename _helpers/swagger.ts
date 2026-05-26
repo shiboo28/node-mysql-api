@@ -1,4 +1,4 @@
-const swaggerUi = require('swagger-ui-express');
+import swaggerUi from 'swagger-ui-express';
 
 const swaggerSpec = {
   openapi: '3.0.0',
@@ -71,7 +71,7 @@ const swaggerSpec = {
         summary: 'Authenticate account credentials and return a JWT token and a cookie with a refresh token',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { '$ref': '#/components/schemas/AuthenticateRequest' } } }
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthenticateRequest' } } }
         },
         responses: {
           '200': { description: 'Success' },
@@ -97,7 +97,7 @@ const swaggerSpec = {
         summary: 'Register a new user account and send a verification email',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { '$ref': '#/components/schemas/RegisterRequest' } } }
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RegisterRequest' } } }
         },
         responses: {
           '200': { description: 'Registration successful' },
@@ -164,4 +164,4 @@ const swaggerSpec = {
   }
 };
 
-module.exports = { swaggerUi, swaggerSpec };
+export { swaggerUi, swaggerSpec };
