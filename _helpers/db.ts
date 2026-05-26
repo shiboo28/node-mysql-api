@@ -58,12 +58,10 @@ async function initialize() {
 
     let sequelize;
     try {
-        // Create database if it does not exist
         const connection = await mysql.createConnection({ host, port, user, password });
         await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
         await connection.end();
 
-        // Connect to database
         sequelize = new Sequelize(database, user, password, {
             host,
             port,
@@ -85,7 +83,6 @@ async function initialize() {
 
         await sequelize.sync();
 
-        // Auto-promote admin@lab7.com to Admin if it exists
         try {
             const adminAccount = await db.Account.findOne({ where: { email: 'admin@lab7.com' } });
             if (adminAccount && adminAccount.role !== 'Admin') {
@@ -97,7 +94,6 @@ async function initialize() {
             console.error('Failed to auto-promote admin@lab7.com:', err.message);
         }
 
-        // Auto-verify all existing unverified accounts on startup
         try {
             const [updatedRows] = await db.Account.update(
                 { verified: new Date(), verificationToken: null },
@@ -115,6 +111,5 @@ async function initialize() {
     } catch (err: any) {
         db.error = err.message || String(err);
         console.error('Database connection / initialization failed:', err);
-    }
     }
 }
