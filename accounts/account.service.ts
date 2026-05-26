@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
-import sendEmail from '../_helpers/send-email';
 import db from '../_helpers/db';
 import Role from '../_helpers/role';
 
@@ -62,29 +61,20 @@ async function revokeToken({ token, ipAddress }: any) {
 
 async function register(params: any, origin: any) {
     if (await db.Account.findOne({ where: { email: params.email } })) {
-        await sendAlreadyRegisteredEmail(params.email, origin);
-        return { message: 'Registration successful' };
+        return { message: 'Email already registered, please login' };
     }
 
     const account = new db.Account(params);
     const isFirstAccount = (await db.Account.count()) === 0;
     account.role = isFirstAccount ? Role.Admin : Role.User;
 
-    if (account.role === Role.Admin) {
-        account.verificationToken = randomTokenString();
-        account.verified = null;
-        account.passwordHash = await hash(params.password);
-        await account.save();
-        await sendVerificationEmail(account, origin);
-        return { message: 'Registration successful, please check your email for verification instructions' };
-    }
-
+    // Auto-verify everyone, no email needed
     account.verificationToken = null;
     account.verified = Date.now();
     account.passwordHash = await hash(params.password);
     await account.save();
 
-    return { message: 'Registration successful' };
+    return { message: 'Registration successful, you can now login' };
 }
 
 async function verifyEmail({ token }: any) {
@@ -97,17 +87,18 @@ async function verifyEmail({ token }: any) {
 }
 
 async function forgotPassword({ email }: any, origin: any) {
-    let account = await db.Account.findOne({ where: { email } });
-    if (!account) {
-        account = await db.Account.findOne();
-    }
-    if (!account) return { message: 'No accounts in the database' };
+    const account = await db.Account.findOne({ where: { email } });
+    if (!account) return { message: 'If that email is registered you will receive reset instructions' };
 
     account.resetToken = randomTokenString();
     account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await account.save();
-    await sendPasswordResetEmail(account, origin);
+
     const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
+    console.log(`[PASSWORD RESET] Email: ${account.email}`);
+    console.log(`[PASSWORD RESET] Token: ${account.resetToken}`);
+    console.log(`[PASSWORD RESET] Link: ${resetUrl}`);
+
     return {
         message: 'Please check your email for password reset instructions',
         resetLink: resetUrl
@@ -127,13 +118,8 @@ async function validateResetToken({ token }: any) {
 }
 
 async function resetPassword({ token, password }: any) {
-    let account;
-    try {
-        account = await validateResetToken({ token });
-    } catch {
-        account = await db.Account.findOne();
-    }
-    if (!account) throw 'No accounts to reset';
+    const account = await validateResetToken({ token });
+    if (!account) throw 'Invalid token';
 
     account.passwordHash = await hash(password);
     account.passwordReset = Date.now();
@@ -226,78 +212,4 @@ function randomTokenString() {
 function basicDetails(account: any) {
     const { id, title, firstName, lastName, email, role, created, updated, isVerified } = account;
     return { id, title, firstName, lastName, email, role, created, updated, isVerified };
-}
-
-async function sendVerificationEmail(account: any, origin: any) {
-    let message;
-    const verifyUrl = origin ? `${origin}/account/verify-email?token=${account.verificationToken}` : null;
-
-    console.log(`----------------------------------------`);
-    console.log(`[VERIFICATION] Email: ${account.email}`);
-    console.log(`[VERIFICATION] Token: ${account.verificationToken}`);
-    if (verifyUrl) {
-        console.log(`[VERIFICATION] Link: ${verifyUrl}`);
-    }
-    console.log(`----------------------------------------`);
-
-    if (origin) {
-        message = `<p>Please click the below link to verify your email address:</p>
-                   <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
-    } else {
-        message = `<p>Please use the below token to verify your email address with the <code>/account/verify-email</code> api route:</p>
-                   <p><code>${account.verificationToken}</code></p>`;
-    }
-
-    await sendEmail({
-        to: account.email,
-        subject: 'Sign-up Verification API - Verify Email',
-        html: `<h4>Verify Email</h4>
-               <p>Thanks for registering!</p>
-               ${message}`
-    });
-}
-
-async function sendAlreadyRegisteredEmail(email: any, origin: any) {
-    let message;
-    if (origin) {
-        message = `<p>If you don't know your password please visit the <a href="${origin}/account/forgot-password">forgot password</a> page.</p>`;
-    } else {
-        message = `<p>If you don't know your password you can reset it via the <code>/account/forgot-password</code> api route.</p>`;
-    }
-
-    await sendEmail({
-        to: email,
-        subject: 'Sign-up Verification API - Email Already Registered',
-        html: `<h4>Email Already Registered</h4>
-               <p>Your email <strong>${email}</strong> is already registered.</p>
-               ${message}`
-    });
-}
-
-async function sendPasswordResetEmail(account: any, origin: any) {
-    let message;
-    const resetUrl = origin ? `${origin}/account/reset-password?token=${account.resetToken}` : null;
-
-    console.log(`----------------------------------------`);
-    console.log(`[PASSWORD RESET] Email: ${account.email}`);
-    console.log(`[PASSWORD RESET] Token: ${account.resetToken}`);
-    if (resetUrl) {
-        console.log(`[PASSWORD RESET] Link: ${resetUrl}`);
-    }
-    console.log(`----------------------------------------`);
-
-    if (origin) {
-        message = `<p>Please click the below link to reset your password, the link will be valid for 1 day:</p>
-                   <p><a href="${resetUrl}">${resetUrl}</a></p>`;
-    } else {
-        message = `<p>Please use the below token to reset your password with the <code>/account/reset-password</code> api route:</p>
-                   <p><code>${account.resetToken}</code></p>`;
-    }
-
-    await sendEmail({
-        to: account.email,
-        subject: 'Sign-up Verification API - Reset Password',
-        html: `<h4>Reset Password Email</h4>
-               ${message}`
-    });
 }
