@@ -1,4 +1,5 @@
 import swaggerUi from 'swagger-ui-express';
+import { Router } from 'express';
 
 const swaggerSpec = {
   openapi: '3.0.0',
@@ -164,4 +165,8 @@ const swaggerSpec = {
   }
 };
 
-export { swaggerUi, swaggerSpec };
+const router = Router();
+router.use('/', swaggerUi.serve);
+router.get('/', swaggerUi.setup(swaggerSpec));
+
+export default router;
