@@ -4,11 +4,14 @@ async function getTransporter() {
     if (process.env.SMTP_HOST) {
         return nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: false,
+            port: parseInt(process.env.SMTP_PORT || '465'),
+            secure: true,  // SSL for port 465
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: false  // helps with Railway's network
             }
         });
     } else {
@@ -17,6 +20,7 @@ async function getTransporter() {
         return nodemailer.createTransport({
             host: 'smtp.ethereal.email',
             port: 587,
+            secure: false,
             auth: {
                 user: testAccount.user,
                 pass: testAccount.pass
