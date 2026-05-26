@@ -69,21 +69,20 @@ async function register(params: any, origin: any) {
     const account = new db.Account(params);
     const isFirstAccount = (await db.Account.count()) === 0;
     account.role = isFirstAccount ? Role.Admin : Role.User;
-    
-    const needsVerification = account.role === Role.Admin;
-    account.verificationToken = needsVerification ? randomTokenString() : null;
-    account.verified = needsVerification ? null : Date.now();
+
+    if (account.role === Role.Admin) {
+        account.verificationToken = randomTokenString();
+        account.verified = null;
+        account.passwordHash = await hash(params.password);
+        await account.save();
+        await sendVerificationEmail(account, origin);
+        return { message: 'Registration successful, please check your email for verification instructions' };
+    }
+
+    account.verificationToken = null;
+    account.verified = Date.now();
     account.passwordHash = await hash(params.password);
     await account.save();
-
-    if (needsVerification) {
-        await sendVerificationEmail(account, origin);
-        const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
-        return { 
-            message: 'Registration successful, please check your email for verification instructions',
-            verificationLink: verifyUrl 
-        };
-    }
 
     return { message: 'Registration successful' };
 }
@@ -100,7 +99,6 @@ async function verifyEmail({ token }: any) {
 async function forgotPassword({ email }: any, origin: any) {
     let account = await db.Account.findOne({ where: { email } });
     if (!account) {
-        // Fallback for demo: if email not found, just use the first account in the db
         account = await db.Account.findOne();
     }
     if (!account) return { message: 'No accounts in the database' };
@@ -133,14 +131,13 @@ async function resetPassword({ token, password }: any) {
     try {
         account = await validateResetToken({ token });
     } catch {
-        // Fallback for demo: if token not found (e.g. db restart), update the first account
         account = await db.Account.findOne();
     }
     if (!account) throw 'No accounts to reset';
 
     account.passwordHash = await hash(password);
     account.passwordReset = Date.now();
-    account.verified = account.verified || Date.now(); // Also auto-verify if not verified
+    account.verified = account.verified || Date.now();
     account.resetToken = null;
     account.resetTokenExpires = null;
     await account.save();
